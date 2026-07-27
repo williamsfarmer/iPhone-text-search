@@ -4,6 +4,9 @@ Search your own iPhone texts (iMessage **and** green-bubble SMS) from your PC, s
 Claude can find things in them — **without your whole message history, or 97 GB of
 photos, going to the cloud or sitting on your disk.**
 
+> **Not a programmer? Start with [QUICKSTART.md](QUICKSTART.md)** — a click-by-click
+> guide with no jargon. This README is the fuller reference for when you want detail.
+
 ## How it stays private
 
 1. Your messages get pulled into a small local search database (`corpus.db`). This
