@@ -73,6 +73,10 @@ def device_present(base: list[str]) -> bool:
 
 
 def run_backup(base: list[str], scratch: Path) -> bool:
+    # Always start from a clean scratch dir: a leftover partial backup from an
+    # interrupted run can confuse the next backup.
+    if scratch.exists():
+        shutil.rmtree(scratch, ignore_errors=True)
     scratch.mkdir(parents=True, exist_ok=True)
     cmd = base + ["backup2", "backup", "--full", str(scratch)]
     print("Backing up messages (this talks to the phone; leave it unlocked)...")
