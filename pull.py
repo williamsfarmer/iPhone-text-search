@@ -72,14 +72,46 @@ def device_present(base: list[str]) -> bool:
     return r.returncode == 0 and ("Identifier" in out or "UniqueDeviceID" in out or "SerialNumber" in out)
 
 
+def _backup_supports_only(base: list[str]) -> bool:
+    """True if this pymobiledevice3 supports the --only payload filter."""
+    try:
+        r = subprocess.run(base + ["backup2", "backup", "--help"],
+                           capture_output=True, text=True, timeout=60)
+    except Exception:
+        return False
+    return "--only" in ((r.stdout or "") + (r.stderr or ""))
+
+
 def run_backup(base: list[str], scratch: Path) -> bool:
     # Always start from a clean scratch dir: a leftover partial backup from an
     # interrupted run can confuse the next backup.
     if scratch.exists():
         shutil.rmtree(scratch, ignore_errors=True)
     scratch.mkdir(parents=True, exist_ok=True)
-    cmd = base + ["backup2", "backup", "--full", str(scratch)]
-    print("Backing up messages (this talks to the phone; leave it unlocked)...")
+
+    # --only sms/contacts is pymobiledevice3's built-in payload filter: it copies
+    # ONLY Library/SMS/sms.db and the AddressBook -- NOT the whole device. That is
+    # what keeps the footprint tiny (no full-phone backup on disk or over the wire).
+    if not _backup_supports_only(base):
+        print(
+            "This pymobiledevice3 is too old to copy messages-only. Upgrade it:\n"
+            "  python -m pip install --upgrade pymobiledevice3\n"
+            "then try again. (Refusing to fall back to a full-device backup.)"
+        )
+        return False
+    cmd = base + ["backup2", "backup", "--full",
+                  "--only", "sms", "--only", "contacts", str(scratch)]
+
+    print("=" * 62)
+    print(" WATCH YOUR IPHONE NOW -- it needs one action from you:")
+    print("   * Keep the phone UNLOCKED (Settings > Display & Brightness >")
+    print("     Auto-Lock > Never while this runs).")
+    print("   * When the phone shows 'Enter Passcode' (or 'Trust'), TYPE YOUR")
+    print("     PASSCODE ON THE PHONE and do NOT dismiss it. iOS requires this")
+    print("     to unlock the backup -- if it's dismissed, this hangs at 0%.")
+    print("   * Only Messages + Contacts copy (small), so it finishes fast once")
+    print("     the passcode is entered.")
+    print("=" * 62)
     print("  " + " ".join(cmd))
     try:
         # Inherit stdout/stderr so backup progress is visible live.
@@ -89,12 +121,15 @@ def run_backup(base: list[str], scratch: Path) -> bool:
         return False
     if r.returncode != 0:
         print(
-            "\nBackup command failed. Common causes:\n"
-            "  * iPhone locked or 'Trust This Computer' not tapped.\n"
-            "  * Apple Devices app / Apple Mobile Device Service not installed.\n"
-            "  * Backup encryption is ON -- turn it off and retry.\n"
-            "  * Not enough free disk space (needs roughly as much free space as\n"
-            "    your phone's on-device data; use --scratch on a bigger drive).\n"
+            "\nBackup failed or was interrupted. Most common causes:\n"
+            "  * The passcode prompt on the PHONE wasn't entered (iOS needs it to\n"
+            "    unlock the backup). Keep the phone unlocked and type the passcode.\n"
+            "  * Stale pairing -- run these two, then retry:\n"
+            "      python -m pymobiledevice3 lockdown unpair\n"
+            "      python -m pymobiledevice3 lockdown pair\n"
+            "    (unlock the phone, tap Trust, enter the passcode).\n"
+            "  * Backup encryption is ON -- turn it off and retry (Messages are\n"
+            "    included in unencrypted backups).\n"
             "You can also run the command above by hand to see the full error."
         )
         return False
