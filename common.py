@@ -31,6 +31,23 @@ BACKUP_ROOTS = [
 ]
 
 
+def default_data_dir() -> Path:
+    """A stable, per-user data folder that is NOT synced to OneDrive.
+
+    The corpus holds your entire decoded text history, so it must not live in a
+    cloud-synced location (Desktop/Documents are OneDrive "Known Folder Move"
+    targets on stock Windows 11). LocalAppData never syncs.
+    """
+    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_DATA_HOME")
+    if base:
+        return Path(base) / "iPhoneTextSearch"
+    return Path.home() / ".iphone-text-search"
+
+
+def default_corpus_path() -> Path:
+    return default_data_dir() / "corpus.db"
+
+
 @dataclass
 class Backup:
     path: Path

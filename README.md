@@ -27,47 +27,50 @@ text database, so the thing left on your disk is tiny.
 
 ---
 
+## The easy way: Setup + two Desktop icons
+
+Most people should just follow **[QUICKSTART.md](QUICKSTART.md)**: install the Apple
+Devices app + Python, download and extract this tool, then **double-click
+`Setup - Double Click Me`** once. It installs the connector and creates two Desktop
+icons — **Pull iPhone Texts** and **Search iPhone Texts** — and you never touch a
+folder or terminal again. The rest of this README is the technical reference behind
+those icons.
+
 ## Two ways to get the messages
 
 ### Option B — pull *only* the messages off the phone (recommended)
 
-`pull.py` talks to the iPhone directly, makes a backup into a **scratch folder you
-choose** (put it on an external drive if you're short on space), lifts out just the
-messages database + your contacts, builds `corpus.db`, and **deletes the scratch
-backup**. Nothing large is left behind.
+`pull.py` (run by the **Pull iPhone Texts** icon) talks to the iPhone directly, makes
+a backup into a scratch folder, lifts out just the messages database + your contacts,
+builds the corpus, and **deletes the scratch backup**. Nothing large is left behind.
 
-**One-time setup:**
-1. Install the **Apple Devices** app from the Microsoft Store (it provides the Windows
-   driver that lets a PC talk to the iPhone). iTunes also works.
-2. Install Python from <https://www.python.org/downloads/> (tick **"Add python.exe to
-   PATH"**).
-3. In a terminal in this folder: `pip install pymobiledevice3`
-4. On the iPhone: **Settings → General → Transfer or Reset → …** isn't needed — just
-   make sure **backup encryption is OFF** (Apple Devices app → your phone → uncheck
-   "Encrypt local backup"). Texts are included in unencrypted backups.
+Prerequisites: the **Apple Devices** app (the Windows iPhone driver), Python with
+`pymobiledevice3` installed (Setup does this), and **backup encryption OFF** in the
+Apple Devices app. Then plug in the iPhone, unlock it, and tap **Trust This Computer**.
 
-**Run it:**
+Advanced (from a terminal, instead of the icon):
 ```
-python pull.py                       # scratch folder here, auto-deleted after
-python pull.py --scratch E:\scratch  # stage the backup on an external drive
+python pull.py                       # default private scratch, auto-deleted after
+python pull.py --scratch E:\scratch  # stage the temporary backup on another drive
 ```
-Plug in the iPhone, unlock it, and tap **"Trust This Computer"** when prompted.
 
 ### Option A — use a backup you already made
 
 If you'd rather make the backup yourself in the Apple Devices app (full phone backup),
-point the extractor at it:
+point the extractor at it (terminal):
 ```
 python extract.py            # auto-finds your latest backup
 python extract.py --list     # show all backups it can see
 ```
 
-Either way, you end up with `corpus.db`.
+Either way, you end up with the corpus (a private per-user `corpus.db`, see below).
 
 ---
 
 ## Searching
 
+Double-click the **Search iPhone Texts** icon, type words, press Enter. Advanced
+users can call it directly:
 ```
 python search.py "biopsy results"
 python search.py "dinner" --contact "Jane"
@@ -83,8 +86,6 @@ python search.py "" --contact "Mom" --before 2026-06-01
 | `--limit N` | max results (default 50) |
 | `--raw` | literal search expression, e.g. `"biopsy OR pathology"`, `"derm*"` |
 | `--json` | machine-readable output |
-
-(You can also double-click the `.bat` wrappers, or run `search.bat "keywords"`.)
 
 ## Letting Claude search for you
 
@@ -109,22 +110,32 @@ turn it back on.
 
 ## Notes & limits
 
-- **Snapshot:** `corpus.db` reflects the last pull. Re-run `pull.py` to pick up newer texts.
+- **Where the corpus lives:** by default in a private per-user folder
+  (`%LOCALAPPDATA%\iPhoneTextSearch\corpus.db`), which is **not** synced to OneDrive.
+  This is deliberate — the corpus holds your whole decoded text history and must not
+  land in a cloud-synced folder. Override with `--out` / `--db` if you want.
+- **Snapshot:** the corpus reflects the last pull. Run **Pull iPhone Texts** again to
+  pick up newer texts.
 - **Text only:** attachments (photos/files) aren't indexed — just message text.
 - **Message bodies:** modern iOS stores text in a binary field; this decodes the plain
   text of each message (good for search). Rich attributes / some edits aren't reconstructed.
 - **Contacts** come from the backup's address book; unknown numbers show as the number.
-- **PHI:** your texts may contain patient-adjacent content. Keep `corpus.db` on this
-  machine (ideally an encrypted disk) and don't upload it — the default workflow is built
-  so you never have to.
+- **PHI:** your texts may contain patient-adjacent content. The corpus stays on this
+  machine (private folder above) — don't upload it; the default workflow is built so you
+  never have to.
 
 ## Files
 
 | File | What it is |
 |------|------------|
-| `pull.py` | **Option B** — pull only the messages off the phone, build `corpus.db` |
-| `extract.py` | **Option A** — build `corpus.db` from a backup you already made |
-| `search.py` | search `corpus.db` |
-| `common.py` | shared helpers (backup location, message-body decoding, time/phone) |
+| `Setup - Double Click Me.bat` | one-time setup: checks Python, installs the connector, makes the Desktop icons |
+| `launch-pull.bat` | target of the **Pull iPhone Texts** icon |
+| `launch-search.bat` | target of the **Search iPhone Texts** icon |
+| `make-shortcuts.ps1` | creates the two Desktop shortcuts (run by Setup) |
+| `pull.py` | **Option B** — pull only the messages off the phone, build the corpus |
+| `extract.py` | **Option A** — build the corpus from a backup you already made |
+| `search.py` | search the corpus |
+| `common.py` | shared helpers (backup location, message-body decoding, corpus path) |
+| `extract.bat` | terminal wrapper for Option A |
 | `requirements.txt` | `pymobiledevice3` (only needed for `pull.py`) |
-| `*.bat` | double-click / no-`python`-prefix wrappers |
+| `QUICKSTART.md` | click-by-click guide for non-programmers |

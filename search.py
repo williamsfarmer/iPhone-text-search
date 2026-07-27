@@ -28,6 +28,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import common
+
 
 def to_ts(date_str: str) -> int:
     return int(datetime.strptime(date_str, "%Y-%m-%d").timestamp())
@@ -45,7 +47,7 @@ def build_match(query: str, raw: bool) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Search your local iPhone-text corpus.")
     ap.add_argument("query", nargs="?", default="", help="keywords to search for")
-    ap.add_argument("--db", default="corpus.db", help="corpus database (default: corpus.db)")
+    ap.add_argument("--db", default=None, help="corpus database (default: the private per-user corpus)")
     ap.add_argument("--contact", help="only messages to/from this contact (substring match)")
     ap.add_argument("--from-me", action="store_true", help="only messages you sent")
     ap.add_argument("--to-me", action="store_true", help="only messages you received")
@@ -56,9 +58,11 @@ def main() -> int:
     ap.add_argument("--json", action="store_true", help="output JSON")
     args = ap.parse_args()
 
-    db = Path(args.db)
+    db = Path(args.db) if args.db else common.default_corpus_path()
     if not db.is_file():
-        print(f"No corpus found at {db.resolve()}.\nRun:  python extract.py")
+        print("No texts have been pulled onto this PC yet.")
+        print("Close this window and double-click the 'Pull iPhone Texts' icon on")
+        print("your Desktop first, then search again.")
         return 1
 
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)

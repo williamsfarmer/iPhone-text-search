@@ -201,7 +201,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Extract iPhone texts into a local searchable corpus.")
     ap.add_argument("--list", action="store_true", help="list backups and exit")
     ap.add_argument("--backup", help="backup index (from --list) or an explicit path")
-    ap.add_argument("--out", default="corpus.db", help="output database (default: corpus.db)")
+    ap.add_argument("--out", default=None,
+                    help="output database (default: a private per-user folder)")
     args = ap.parse_args()
 
     if not common.check_fts5():
@@ -239,7 +240,8 @@ def main() -> int:
     contacts = load_contacts(ab_db)
     print(f"Contacts resolved from backup: {len(contacts)}")
 
-    out = Path(args.out).resolve()
+    out = Path(args.out).resolve() if args.out else common.default_corpus_path()
+    out.parent.mkdir(parents=True, exist_ok=True)
     print("Building corpus (decoding message bodies, this can take a moment)...")
     stats = build_corpus(sms_db, contacts, out)
 

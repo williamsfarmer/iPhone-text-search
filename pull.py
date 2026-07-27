@@ -89,6 +89,8 @@ def run_backup(base: list[str], scratch: Path) -> bool:
             "  * iPhone locked or 'Trust This Computer' not tapped.\n"
             "  * Apple Devices app / Apple Mobile Device Service not installed.\n"
             "  * Backup encryption is ON -- turn it off and retry.\n"
+            "  * Not enough free disk space (needs roughly as much free space as\n"
+            "    your phone's on-device data; use --scratch on a bigger drive).\n"
             "You can also run the command above by hand to see the full error."
         )
         return False
@@ -110,9 +112,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Pull only your iPhone messages into a local searchable corpus."
     )
-    ap.add_argument("--scratch", default="_backup_scratch",
+    ap.add_argument("--scratch", default=None,
                     help="temporary backup folder (put on an external drive if short on space)")
-    ap.add_argument("--out", default="corpus.db", help="output database (default: corpus.db)")
+    ap.add_argument("--out", default=None,
+                    help="output database (default: a private per-user folder)")
     ap.add_argument("--keep", action="store_true", help="keep the raw scratch backup")
     args = ap.parse_args()
 
@@ -139,7 +142,8 @@ def main() -> int:
         )
         return 1
 
-    scratch = Path(args.scratch).resolve()
+    scratch = Path(args.scratch).resolve() if args.scratch \
+        else (common.default_data_dir() / "_scratch")
     if not run_backup(base, scratch):
         return 1
 
@@ -169,7 +173,8 @@ def main() -> int:
     contacts = extract.load_contacts(ab_db)
     print(f"Contacts resolved from backup: {len(contacts)}")
 
-    out = Path(args.out).resolve()
+    out = Path(args.out).resolve() if args.out else common.default_corpus_path()
+    out.parent.mkdir(parents=True, exist_ok=True)
     print("Building corpus (decoding message bodies)...")
     stats = extract.build_corpus(sms_db, contacts, out)
 
@@ -185,7 +190,7 @@ def main() -> int:
         print(f"  Range:    {stats['start']}  ->  {stats['end']}")
         print("  ^ Check this covers how far back your texts go. If it looks short,")
         print("    see README.md 'Messages in iCloud'.")
-    print("\nNow search it:  python search.py \"your keywords\"")
+    print("\nNow double-click the 'Search iPhone Texts' icon on your Desktop to look through them.")
     return 0
 
 
