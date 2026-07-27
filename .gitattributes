@@ -1,0 +1,11 @@
+# Windows batch/PowerShell scripts MUST use CRLF line endings, or cmd.exe
+# mis-parses multi-line blocks and the window closes instantly. Store these
+# verbatim (-text) so the CRLF bytes survive commit, checkout, and ZIP download.
+*.bat -text
+*.cmd -text
+*.ps1 -text
+
+# Everything else stays LF.
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
