@@ -1,0 +1,16 @@
+# Never commit extracted message data or anything derived from a real backup.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlitedb
+corpus.db
+*.json
+*.txt
+!requirements.txt
+backup/
+extracted/
+
+# Python bytecode
+__pycache__/
+*.pyc

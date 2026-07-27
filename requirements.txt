@@ -1,0 +1,3 @@
+# Only needed for pull.py (Option B: pull messages straight off the phone).
+# extract.py and search.py use the standard library only.
+pymobiledevice3
